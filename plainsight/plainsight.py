@@ -25,7 +25,7 @@ def run():
     parser.add_argument('-m', '--mode', metavar='MODE', type=str, nargs=1, required=True,
                         choices=['encipher', 'decipher'],
                        help='Operating mode. Valid options are: encipher, decipher.')
-    parser.add_argument('-c', '--context', metavar='N', type=int, nargs='?', default=3, choices=xrange(11),
+    parser.add_argument('-c', '--context', metavar='N', type=int, nargs='?', default=3, choices=range(11),
                        help='The number of tokens to use as context. ' + \
                             'Choose a number from 0 through 10. Default is 3. ' + \
                             'The time to build a model increases [superlinearly] with this, but so does similarity to the source texts.')

@@ -3,12 +3,11 @@ from math import floor, log
 from time import time  # Removed 'clock' as it's deprecated in Python 3
 
 from bitstring import BitArray, ConstBitStream
-from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 
 from . import data, probability  # Changed to relative imports
 
 ###############################################################################
-# A Model contains frequency counts and probabiliteis of n-grams extracted
+# A Model contains frequency counts and probabilities of n-grams extracted
 # from at least one source text. The source text is tokenized, then fed into
 # the Model one n-length slice at a time.
 #
@@ -28,7 +27,7 @@ class Model:
         ptr = self._children[1]
         for token in p:
             if token not in ptr:
-               ptr[token] = [0, {}, None]
+                ptr[token] = [0, {}, None]
 
             ptr[token][0] += 1
             ptr = ptr[token][1]
@@ -52,10 +51,8 @@ class Model:
 
     # start from root
     def abs_move_to_child(self, tokens):
-        #print 'moving to ROOT'
         self.move_to_root()
         for token in tokens:
-         #  print 'moving to token %s' % token
             self.move_to_child(token)
 
     def get_children(self):
@@ -64,7 +61,6 @@ class Model:
     def get_child_tokens(self):
         phrases = list(self.get_children().keys())
         return phrases
-
 
     def top(self, limit):
         # already sorted, thanks to call to model.sort_all_children()
@@ -120,7 +116,7 @@ def next_output(payload, enum, mode, limit):
     if choice_bits == 0: return None, 0
 
     if mode == 'encipher':
-        bits_to_take = choice_bits#min(len(payload), choice_bits)
+        bits_to_take = choice_bits  # min(len(payload), choice_bits)
     if mode == 'decipher':
         token = payload[0]
 
@@ -138,41 +134,34 @@ def next_output(payload, enum, mode, limit):
             return token, bits
         else:
             return None, 0
+
 ###############################################################################
 # cipher: encipher or decipher input, given a linguistic model
 
 def cipher(model, order, payload, mode, limit_max=None):
-    if mode == 'encipher': output = []
-    if mode == 'decipher': output = BitArray()
+    if mode == 'encipher':
+        output = []
+    if mode == 'decipher':
+        output = BitArray()
     context = []
     initial_length = len(payload)
-    pbar = ProgressBar(widgets=['%sing: ' % mode,
-                                Percentage(),
-                                Bar(),
-                                FileTransferSpeed(),
-                                ' | ',
-                                ETA()],
-                                maxval=initial_length or 1).start()
     bit_marker = 0
     payload_remaining = initial_length
     while payload_remaining > 0:
-        model.abs_move_to_child(context) # reset context
-        #print 'moving to: %s' % context
+        model.abs_move_to_child(context)  # reset context
         if mode == 'encipher' and payload_remaining < 8:
-            limit = 2**(8 - bit_marker)
+            limit = 2 ** (8 - bit_marker)
         elif mode == 'decipher' and payload_remaining == 1:
-            limit = 2**(8 - bit_marker)
+            limit = 2 ** (8 - bit_marker)
         else:
             if limit_max is None:
-                limit = 2**32
+                limit = 2 ** 32
             else:
                 limit = limit_max
-        top_tokens = model.top(limit) # get tokens for conversion
+        top_tokens = model.top(limit)  # get tokens for conversion
         if mode == 'encipher':
             index, nBits = next_output(payload, top_tokens, 'encipher',
-                                      limit)
-                                      # payload[0] == 0)
-                                       #False)#payload_remaining < 3)
+                                       limit)
             bits = None
             if index is not None:
                 token = top_tokens[index]
@@ -180,7 +169,6 @@ def cipher(model, order, payload, mode, limit_max=None):
         if mode == 'decipher':
             token, bits = next_output(payload, top_tokens, 'decipher',
                                       limit)
-                                      #False)#payload_remaining < 3)
             if token is not None:
                 nBits = len(bits)
                 index = top_tokens.index(token)
@@ -200,9 +188,9 @@ def cipher(model, order, payload, mode, limit_max=None):
             # not. leaving them in seems to make the text more human-like.
             token = model.get_child_tokens()[0]
             context.append(token)
-            context = context[1:] # back up the context
+            context = context[1:]  # back up the context
         elif mode == 'encipher':
-            context = context[1:] # back up the context
+            context = context[1:]  # back up the context
         elif mode == 'decipher' and token is not None and len(bits) > 0:
             payload = payload[1:]
             output.append(bits)
@@ -211,14 +199,12 @@ def cipher(model, order, payload, mode, limit_max=None):
             payload_remaining -= 1
         elif mode == 'decipher' and len(model.get_child_tokens()) == 1:
             if mode == 'decipher':
-                if mode == 'decipher':
-                    token = model.get_child_tokens()[0]
+                token = model.get_child_tokens()[0]
                 context.append(token)
-                context = context[1:] # remove context to find tokens
+                context = context[1:]  # remove context to find tokens
         elif mode == 'decipher':
-            context = context[1:] # remove context to find tokens
-        pbar.update(initial_length - payload_remaining)
-    pbar.finish()
-    if mode == 'encipher': return ' '.join(output)
-    if mode == 'decipher': return output
-
+            context = context[1:]  # remove context to find tokens
+    if mode == 'encipher':
+        return ' '.join(output)
+    if mode == 'decipher':
+        return output
